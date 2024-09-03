@@ -5,31 +5,42 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { useState } from "react";
-
+import { useState, FormEvent } from "react";  // Importe FormEvent
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-    const [senhaVisivel, setSenhaVisivel] = useState(false);
-    const alternarVisibilidadeSenha = () => {
-        setSenhaVisivel(!senhaVisivel);
-      };
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
+  const alternarVisibilidadeSenha = () => {
+    setSenhaVisivel(!senhaVisivel);
+  };
 
+  const router = useRouter();
+
+  // Função para lidar com o login
+  const handleLogin = (e: FormEvent) => {  // Tipagem do evento
+    e.preventDefault();
+
+    // Aqui você pode adicionar a lógica de autenticação
+
+    // Simulando um login bem-sucedido
+    const loginSuccessful = true;
+
+    if (loginSuccessful) {
+      router.push("/home"); // Redireciona para a página Home
+    }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md bg-white p-8 rounded shadow">
         <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
-        <form>
+        <form onSubmit={handleLogin}>
           <div className="space-y-1 mb-2">
-            <Label htmlFor="email">
-              Email
-            </Label>
+            <Label htmlFor="email">Email</Label>
             <Input type="email" id="email" placeholder="Email" required />
           </div>
           <div className="space-y-1 mb-4 relative">
-            <Label htmlFor="senha">
-              Senha
-            </Label>
+            <Label htmlFor="senha">Senha</Label>
             <Input
               type={senhaVisivel ? "text" : "password"}
               id="senha"
