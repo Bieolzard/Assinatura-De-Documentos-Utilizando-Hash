@@ -17,7 +17,7 @@ export default function DocumentsPage() {
     const router = useRouter();
 
     useEffect(() => {
-        const storedFiles = JSON.parse(localStorage.getItem('files') || '[]');
+        const storedFiles = JSON.parse(localStorage.getItem('files') || '[]') as FileUpload[];
         console.log('Arquivos carregados do localStorage:', storedFiles);
         setFiles(storedFiles);
     }, []);

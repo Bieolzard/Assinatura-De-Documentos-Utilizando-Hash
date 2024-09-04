@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaTrash, FaRedo, FaCheck, FaTimes, FaUpload, FaHome, FaSignInAlt, FaUserPlus, FaFolderOpen } from "react-icons/fa";
 import Link from 'next/link';
 
@@ -9,103 +9,84 @@ interface FileUpload {
     name: string;
     status: "uploading" | "success" | "failed";
     progress: number;
+    fileUrl?: string;  // Propriedade opcional para armazenar o URL do arquivo
 }
 
 export default function UploadPage() {
     const [files, setFiles] = useState<FileUpload[]>([]);
 
-    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const newFile = event.target.files?.[0];
-        
-        if (newFile) {
-            const newFileObject: FileUpload = {
-                id: Math.random().toString(36).substr(2, 9),
-                name: newFile.name,
-                status: "uploading",
-                progress: 0,
+    // Carregar arquivos do localStorage ao iniciar o componente
+    useEffect(() => {
+        const storedFiles = JSON.parse(localStorage.getItem('files') || '[]') as FileUpload[];
+        setFiles(storedFiles);
+    }, []);
+
+    function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            
+            reader.onloadend = () => {
+                const base64data = reader.result;
+    
+                const newFile: FileUpload = {
+                    id: `${Date.now()}`,
+                    name: file.name,
+                    status: 'success',
+                    progress: 100,
+                    fileUrl: base64data as string, // Salva como Base64
+                };
+    
+                // Recupera arquivos existentes no localStorage
+                const storedFiles = JSON.parse(localStorage.getItem('files') || '[]') as FileUpload[];
+    
+                // Adiciona o novo arquivo
+                const updatedFiles = [...storedFiles, newFile];
+    
+                // Salva novamente no localStorage
+                localStorage.setItem('files', JSON.stringify(updatedFiles));
+    
+                // Atualiza o estado local
+                setFiles(updatedFiles);
             };
-
-            setFiles(prevFiles => {
-                const updatedFiles = [...prevFiles, newFileObject];
-                // Atualizar o localStorage
-                localStorage.setItem('files', JSON.stringify(updatedFiles));
-                console.log('Arquivos após upload:', updatedFiles);
-                return updatedFiles;
-            });
-
-            // Simulação do upload
-            setTimeout(() => {
-                const isSuccess = Math.random() > 0.5;
-
-                setFiles(prevFiles =>
-                    prevFiles.map(file =>
-                        file.id === newFileObject.id
-                            ? {
-                                  ...file,
-                                  status: isSuccess ? "success" : "failed",
-                                  progress: 100,
-                              }
-                            : file
-                    )
-                );
-
-                // Atualizar o localStorage
-                const updatedFiles = files.map(file =>
-                    file.id === newFileObject.id
-                        ? {
-                              ...file,
-                              status: isSuccess ? "success" : "failed",
-                              progress: 100,
-                          }
-                        : file
-                );
-                localStorage.setItem('files', JSON.stringify(updatedFiles));
-                console.log('Arquivos após simulação de upload:', updatedFiles);
-            }, 2000);
+    
+            // Converte o arquivo para Base64
+            reader.readAsDataURL(file);
         }
-    };
+    }
 
     const handleRetry = (fileId: string) => {
-        setFiles(prevFiles =>
-            prevFiles.map(file =>
-                file.id === fileId
-                    ? { ...file, status: "uploading", progress: 0 }
-                    : file
-            )
+        const updatedFiles = files.map(file =>
+            file.id === fileId
+                ? { ...file, status: "uploading" as "uploading", progress: 0 }
+                : file
         );
+
+        setFiles(updatedFiles);
+        localStorage.setItem('files', JSON.stringify(updatedFiles));
 
         setTimeout(() => {
             const isSuccess = Math.random() > 0.5;
 
-            setFiles(prevFiles =>
-                prevFiles.map(file =>
-                    file.id === fileId
-                        ? {
-                              ...file,
-                              status: isSuccess ? "success" : "failed",
-                              progress: 100,
-                          }
-                        : file
-                )
-            );
-
-            // Atualizar o localStorage
-            const updatedFiles = files.map(file =>
+            const finalFiles = updatedFiles.map(file =>
                 file.id === fileId
-                    ? { ...file, status: isSuccess ? "success" : "failed", progress: 100 }
+                    ? {
+                          ...file,
+                          status: isSuccess ? "success" as "success" : "failed" as "failed",
+                          progress: 100,
+                      }
                     : file
             );
-            localStorage.setItem('files', JSON.stringify(updatedFiles));
+
+            setFiles(finalFiles);
+            localStorage.setItem('files', JSON.stringify(finalFiles));
         }, 2000);
     };
 
     const handleRemove = (fileId: string) => {
-        setFiles(prevFiles => {
-            const updatedFiles = prevFiles.filter(file => file.id !== fileId);
-            // Atualizar o localStorage
-            localStorage.setItem('files', JSON.stringify(updatedFiles));
-            return updatedFiles;
-        });
+        const updatedFiles = files.filter(file => file.id !== fileId);
+        setFiles(updatedFiles);
+        localStorage.setItem('files', JSON.stringify(updatedFiles));
     };
 
     return (
@@ -146,7 +127,7 @@ export default function UploadPage() {
             <main className="flex flex-col items-center justify-center p-4">
                 <div className="w-full max-w-md items-center justify-center">
                     <label className="block text-center p-4 bg-gray-200 border-2 border-dashed border-gray-400 rounded-lg cursor-pointer">
-                        <input type="file" onChange={handleFileUpload} className="hidden" />
+                        <input type="file" onChange={handleFileUpload} />
                         <FaUpload className="text-4xl text-gray-500 mx-auto" />
                         <p className="mt-2 text-sm text-gray-600">SELECIONE SEU ARQUIVO</p>
                     </label>
@@ -176,7 +157,7 @@ export default function UploadPage() {
                                     )}
                                     {file.status === "failed" && (
                                         <span className="ml-2 text-sm text-red-500 flex items-center">
-                                            <FaTimes className="mr-1" /> tentar novamente
+                                            <FaTimes className="mr-1" /> falhou
                                             <FaRedo
                                                 className="ml-2 cursor-pointer"
                                                 onClick={() => handleRetry(file.id)}
