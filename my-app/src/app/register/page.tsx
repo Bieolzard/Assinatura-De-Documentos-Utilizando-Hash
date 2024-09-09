@@ -7,8 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import InputMask from "react-input-mask";
 import { cpf as cpfValidator } from "cpf-cnpj-validator";
+import { useHookFormMask } from 'use-mask-input'
+import { api } from "@/lib/axios";
+import { toast } from "sonner";
+import errorMap from "zod/locales/en.js";
+import { isAxiosError } from "axios";
+import { signIn } from "next-auth/react";
 
 // Definindo o esquema de validação Zod
 const schema = z.object({
@@ -29,7 +34,7 @@ const schema = z.object({
 });
 
 // Tipagem dos dados do formulário
-type FormData = z.infer<typeof schema>;
+export type FormData = z.infer<typeof schema>;
 
 export default function RegisterPage() {
   const {
@@ -40,8 +45,29 @@ export default function RegisterPage() {
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = (data: FormData) => {
-    console.log(data);
+  const registerWithMask = useHookFormMask(register)
+
+  const onSubmit = async (data: FormData) => {
+    try {
+      const response = await api.post('/api/register', data)
+      if (response.status === 201) {
+        toast.success(response.data.message)
+        const email = data.email
+        const password = data.senha
+        await signIn('credentials', { callbackUrl: '/home', email, password })
+      }
+      console.log(response)
+    } catch (error) {
+
+      if (isAxiosError(
+        error
+      )) {
+        if (error.status === 409) {
+          toast.error(error.response?.data.message
+          )
+        }
+      }
+    }
   };
 
   return (
@@ -57,25 +83,13 @@ export default function RegisterPage() {
 
           <div className="space-y-1 mb-2">
             <Label htmlFor="cpf">CPF</Label>
-            <InputMask
-              mask="999.999.999-99"
-              {...register("cpf")}
-              placeholder="000.000.000-00"
-            >
-              {(inputProps: any) => <Input id="cpf" {...inputProps} />}
-            </InputMask>
+            <Input {...registerWithMask('cpf', ['999.999.999-99'])} placeholder="000.000.000-00" id='cpf' />
             {errors.cpf && <p className="text-red-500">{errors.cpf.message}</p>}
           </div>
 
           <div className="space-y-1 mb-2">
             <Label htmlFor="telefone">Telefone</Label>
-            <InputMask
-              mask="(99) 99999-9999"
-              {...register("telefone")}
-              placeholder="(00) 00000-0000"
-            >
-              {(inputProps: any) => <Input id="telefone" {...inputProps} />}
-            </InputMask>
+            <Input {...registerWithMask('telefone', ['(99) 99999-9999'])} placeholder="(00) 00000-0000" id="telefone" />
             {errors.telefone && <p className="text-red-500">{errors.telefone.message}</p>}
           </div>
 

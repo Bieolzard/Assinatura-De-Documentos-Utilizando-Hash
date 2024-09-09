@@ -1,18 +1,21 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { getSession, signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { FaUpload, FaFolderOpen, FaPen, FaUser, FaSignOutAlt } from "react-icons/fa";
 
 export default function Home() {
     const router = useRouter();
 
+    const { data: session } = useSession()
+
     // Função para lidar com o logout
     const handleLogout = () => {
-        // Lógica de logout aqui
+        signOut({
+            callbackUrl: '/login'
+        })
 
-        // Simulando o logout e redirecionamento para a página de login
-        router.push("/login");
     };
 
     // Função para redirecionar para a página de upload
@@ -29,7 +32,7 @@ export default function Home() {
         <div className="flex flex-col items-center p-4 bg-gray-50 min-h-screen">
             {/* Cabeçalho */}
             <div className="w-full max-w-md bg-blue-500 p-6 rounded-b-lg text-white text-center">
-                <h1 className="text-xl font-bold">Bem vindo, Hugo</h1>
+                <h1 className="text-xl font-bold">Bem vindo {session?.user?.name}</h1>
                 <p className="text-sm">Seu app de assinaturas</p>
             </div>
 
