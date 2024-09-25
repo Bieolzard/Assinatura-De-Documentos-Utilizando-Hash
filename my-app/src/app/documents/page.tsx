@@ -4,22 +4,26 @@ import { useEffect, useState } from "react";
 import { FaEye, FaTrash, FaCheck, FaTimes, FaHome, FaUpload, FaFolderOpen, FaSignInAlt, FaUserPlus } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { api } from "@/lib/axios";
+import { Document } from "@prisma/client";
 
-interface FileUpload {
-    id: string;
-    name: string;
-    status: "uploading" | "success" | "failed";
-    progress: number;
-}
 
 export default function DocumentsPage() {
-    const [files, setFiles] = useState<FileUpload[]>([]);
+    const [files, setFiles] = useState<[]>([]);
     const router = useRouter();
 
     useEffect(() => {
-        const storedFiles = JSON.parse(localStorage.getItem('files') || '[]') as FileUpload[];
-        console.log('Arquivos carregados do localStorage:', storedFiles);
-        setFiles(storedFiles);
+        async function GetFiles() {
+            try {
+                const response = await api.get('/api/documents')
+                console.log(response)
+                setFiles(response.data.data)
+            } catch (error) {
+                console.log(error);
+
+            }
+        }
+        GetFiles()
     }, []);
 
     const handleOpenDocument = (fileId: string) => {
@@ -27,12 +31,7 @@ export default function DocumentsPage() {
     };
 
     const handleRemove = (fileId: string) => {
-        // Remove file from state
-        const updatedFiles = files.filter(file => file.id !== fileId);
-        setFiles(updatedFiles);
 
-        // Remove file from localStorage
-        localStorage.setItem('files', JSON.stringify(updatedFiles));
     };
 
     return (
@@ -72,38 +71,13 @@ export default function DocumentsPage() {
 
             <main className="flex flex-col items-center justify-center p-4">
                 <div className="w-full max-w-md">
-                    {files.map((file) => (
-                        <div key={file.id} className="flex items-center mb-2 p-2 border rounded">
-                            <div className="flex-1">
-                                <p className="text-sm truncate">{file.name}</p>
-                                <div className="flex items-center mt-1">
-                                    {file.status === "uploading" && (
-                                        <span className="ml-2 text-sm text-gray-500">carregando...</span>
-                                    )}
-                                    {file.status === "success" && (
-                                        <span className="ml-2 text-sm text-green-500 flex items-center">
-                                            <FaCheck className="mr-1" /> sucesso!
-                                        </span>
-                                    )}
-                                    {file.status === "failed" && (
-                                        <span className="ml-2 text-sm text-red-500 flex items-center">
-                                            <FaTimes className="mr-1" /> tentativa falhou
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            <FaEye
-                                className="ml-4 text-blue-500 cursor-pointer"
-                                onClick={() => handleOpenDocument(file.id)}
-                            />
-                            <FaTrash
-                                className="ml-4 text-red-500 cursor-pointer"
-                                onClick={() => handleRemove(file.id)}
-                            />
+                    {files.map((file: Document) => (
+                        <div key={file.id}>
+                            <Link href={`sign/${file.id}`}> {file.name} </Link>
                         </div>
                     ))}
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 }
