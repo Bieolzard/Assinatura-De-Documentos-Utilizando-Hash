@@ -1,45 +1,45 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { FaTrash, FaRedo, FaCheck, FaTimes, FaUpload, FaHome, FaSignInAlt, FaUserPlus, FaFolderOpen } from "react-icons/fa";
+import React, { useState } from "react";
+import { FaUpload, FaHome, FaSignInAlt, FaUserPlus, FaFolderOpen } from "react-icons/fa";
 import Link from 'next/link';
 import { api } from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 
-
-interface FileUpload {
-    id: string;
-    name: string;
-    status: "uploading" | "success" | "failed";
-    progress: number;
-    fileUrl?: string;  // Propriedade opcional para armazenar o URL do arquivo
-}
-
 export default function UploadPage() {
     const [file, setFile] = useState<File>();
+    const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     async function handleFileUpload(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault()
+        e.preventDefault();
 
-        const formData = new FormData()
+        const formData = new FormData();
         if (!file) {
-            return
+            console.error("Nenhum arquivo selecionado");
+            return;
         }
-        formData.append('file', file)
+        formData.append('file', file);
+        setIsUploading(true);
+        setUploadStatus(null);
 
         try {
-            const response = await api.post('/api/upload', formData)
-            console.log(response)
+            const response = await api.post('/api/upload', formData);
+            console.log(response);
+            setUploadStatus("Upload concluído com sucesso!");
         } catch (error) {
-            console.log(error)
+            console.error("Erro ao fazer upload:", error);
+            setUploadStatus("Erro ao carregar o documento. Tente novamente.");
+        } finally {
+            setIsUploading(false);
         }
     }
 
-    async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
         if (!e.target.files) {
-            return
+            return;
         }
-        setFile(e.target.files[0])
+        setFile(e.target.files[0]);
     }
 
     return (
@@ -81,17 +81,16 @@ export default function UploadPage() {
                 <form onSubmit={handleFileUpload}>
                     <div className="w-full max-w-md items-center justify-center">
                         <label className="block text-center p-4 bg-gray-200 border-2 border-dashed border-gray-400 rounded-lg cursor-pointer">
-                            <input type="file" onChange={handleFileChange} />
+                            <input type="file" onChange={handleFileChange} accept=".pdf,.doc,.docx,.jpg,.png" />
                             <FaUpload className="text-4xl text-gray-500 mx-auto" />
                             <p className="mt-2 text-sm text-gray-600">SELECIONE SEU ARQUIVO</p>
                         </label>
                     </div>
-                    <Button className="mt-5" type="submit">Enviar</Button>
+                    <Button className="mt-5" type="submit" disabled={isUploading}>
+                        {isUploading ? "Enviando..." : "Enviar"}
+                    </Button>
                 </form>
-
-                <div className="mt-4 w-full max-w-md">
-
-                </div>
+                {uploadStatus && <p className="mt-4 text-red-500">{uploadStatus}</p>}
             </main>
         </div>
     );
