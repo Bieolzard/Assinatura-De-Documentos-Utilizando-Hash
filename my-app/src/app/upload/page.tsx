@@ -1,5 +1,4 @@
 'use client'
-
 import React, { useState, useRef } from "react";
 import { FaUpload, FaHome, FaSignInAlt, FaUserPlus, FaFolderOpen } from "react-icons/fa";
 import Link from "next/link";
@@ -16,15 +15,13 @@ export default function UploadPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
     const [pages, setPages] = useState<string[]>([]);
-    const [documentId, setDocumentId] = useState<string | null>(null); // Novo estado para armazenar o documentId
+    const [documentId, setDocumentId] = useState<string | null>(null);
+    const [signaturePosition, setSignaturePosition] = useState<{ x: number, y: number } | null>(null);
     const sigCanvasRef = useRef<SignatureCanvas | null>(null);
 
     async function handleFileUpload(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
-        if (!file) {
-            console.error("Nenhum arquivo selecionado");
-            return;
-        }
+        if (!file) return;
 
         const formData = new FormData();
         formData.append("file", file);
@@ -33,17 +30,15 @@ export default function UploadPage() {
 
         try {
             const response = await api.post("/api/upload", formData);
-            setUploadStatus("Upload concluído com sucesso!");
-
             if (response.data.fileUrl && response.data.documentId) {
                 setPdfUrl(response.data.fileUrl);
-                setDocumentId(response.data.documentId); // Define o documentId no estado
+                setDocumentId(response.data.documentId);
                 renderPDF(response.data.fileUrl);
+                setUploadStatus("Upload concluído com sucesso!");
             } else {
                 setUploadStatus("Erro: URL do PDF ou ID do documento não encontrado na resposta.");
             }
         } catch (error) {
-            console.error("Erro ao fazer upload:", error);
             setUploadStatus("Erro ao carregar o documento. Verifique o formato e tente novamente.");
         } finally {
             setIsUploading(false);
@@ -74,43 +69,44 @@ export default function UploadPage() {
 
             setPages(pagesArr);
         } catch (error) {
-            console.error("Erro ao carregar ou renderizar o PDF:", error);
             setUploadStatus("Erro ao renderizar o documento.");
         }
     };
 
+    const handleSignaturePosition = (event: React.MouseEvent) => {
+        const { offsetX, offsetY } = event.nativeEvent;
+        setSignaturePosition({ x: offsetX, y: offsetY });
+        console.log(`Posição da assinatura: X=${offsetX}, Y=${offsetY}`);
+    };
+
     const saveSignature = async () => {
-        if (sigCanvasRef.current && documentId) {
+        if (sigCanvasRef.current && documentId && pdfUrl && signaturePosition) {
             const signatureImage = sigCanvasRef.current.toDataURL("image/png");
-    
+
             try {
                 const response = await api.post("/api/save-signature", {
                     documentId,
                     pdfUrl,
                     signatureImage,
+                    position: signaturePosition,
                 });
-    
-                // Atualize a mensagem de acordo com a resposta
+
                 if (response.data.status === "success") {
                     setUploadStatus("Assinatura salva com sucesso!");
                 } else {
                     setUploadStatus("Erro ao salvar a assinatura.");
                 }
             } catch (error) {
-                console.error("Erro ao salvar assinatura:", error);
                 setUploadStatus("Erro ao salvar a assinatura. Tente novamente.");
             }
         } else {
-            console.error("Canvas de assinatura não está disponível ou documentId está ausente.");
+            setUploadStatus("Erro ao salvar a assinatura: dados ausentes ou posição não selecionada.");
         }
     };
 
     function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-        if (e.target.files) {
-            setFile(e.target.files[0]);
-        }
+        if (e.target.files) setFile(e.target.files[0]);
     }
-    
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-50">
@@ -126,21 +122,6 @@ export default function UploadPage() {
                         <li>
                             <Link href="/upload" className="flex items-center">
                                 <FaUpload className="mr-2" /> Upload
-                            </Link>
-                        </li>
-                        <li>
-                            <Link href="/documents" className="flex items-center">
-                                <FaFolderOpen className="mr-2" /> Documentos
-                            </Link>
-                        </li>
-                        <li>
-                            <Link href="/login" className="flex items-center">
-                                <FaSignInAlt className="mr-2" /> Login
-                            </Link>
-                        </li>
-                        <li>
-                            <Link href="/signup" className="flex items-center">
-                                <FaUserPlus className="mr-2" /> Sign Up
                             </Link>
                         </li>
                     </ul>
@@ -164,18 +145,17 @@ export default function UploadPage() {
 
                 {uploadStatus && <p className="mt-4 text-red-500">{uploadStatus}</p>}
 
-                {/* Exibição das páginas do PDF */}
                 {pages.length > 0 && (
                     <div className="mt-4 flex flex-col items-center">
                         {pages.map((page, index) => (
-                            <div key={index} className="relative mb-4">
+                            <div key={index} className="relative mb-4" onClick={handleSignaturePosition}>
                                 <img src={page} alt={`Page ${index + 1}`} className="w-full max-w-md" />
                                 <SignatureCanvas
                                     ref={sigCanvasRef}
                                     canvasProps={{
-                                        width: 600,
-                                        height: 200,
-                                        className: "signature-canvas absolute top-0 left-0"
+                                        width: 500,
+                                        height: 800,
+                                        className: "signature-canvas absolute top-0 left-0",
                                     }}
                                 />
                             </div>
