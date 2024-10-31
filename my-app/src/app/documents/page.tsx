@@ -7,31 +7,34 @@ import Link from "next/link";
 import { api } from "@/lib/axios";
 import { Document } from "@prisma/client";
 
-
 export default function DocumentsPage() {
-    const [files, setFiles] = useState<[]>([]);
+    const [files, setFiles] = useState<Document[]>([]);
     const router = useRouter();
 
     useEffect(() => {
         async function GetFiles() {
             try {
-                const response = await api.get('/api/documents')
-                console.log(response)
-                setFiles(response.data.data)
+                const response = await api.get('/api/documents');
+                console.log(response);
+                setFiles(response.data.data);
             } catch (error) {
                 console.log(error);
-
             }
         }
-        GetFiles()
+        GetFiles();
     }, []);
 
     const handleOpenDocument = (fileId: string) => {
         router.push(`/sign/${fileId}`);
     };
 
-    const handleRemove = (fileId: string) => {
-
+    const handleRemove = async (fileId: string) => {
+        try {
+            await api.delete(`/api/documents/${fileId}`);
+            setFiles((prevFiles) => prevFiles.filter(file => file.id !== fileId));
+        } catch (error) {
+            console.error("Erro ao remover o documento:", error);
+        }
     };
 
     return (
@@ -71,13 +74,25 @@ export default function DocumentsPage() {
 
             <main className="flex flex-col items-center justify-center p-4">
                 <div className="w-full max-w-md">
-                    {files.map((file: Document) => (
-                        <div key={file.id}>
-                            <Link href={`sign/${file.id}`}> {file.name} </Link>
-                        </div>
-                    ))}
+                {files.map((file: Document) => (
+    <div key={file.id} className="flex items-center justify-between p-2 border-b">
+        <Link href={`sign/${file.id}`} className="text-blue-600 hover:underline">{file.name}</Link>
+        <div className="flex space-x-4">
+            <button onClick={() => handleOpenDocument(file.id)}>
+                <FaEye className="text-green-500" />
+            </button>
+            <button onClick={() => handleRemove(file.id)}>
+                <FaTrash className="text-red-500" />
+            </button>
+        </div>
+        {/* Exibir a imagem se imagePath estiver disponível */}
+        {file.imagePath && (
+            <img src={file.imagePath} alt={file.name} className="w-20 h-20 object-cover" />
+        )}
+    </div>
+))}
                 </div>
-            </main >
-        </div >
+            </main>
+        </div>
     );
 }

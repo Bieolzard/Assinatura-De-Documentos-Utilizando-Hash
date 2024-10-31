@@ -4,102 +4,70 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/options";
+import { Buffer } from "buffer";
 
-// Função para criar um job na CloudConvert
-async function createCloudConvertJob(fileUrl: string) {
-    const apiKey = process.env.CLOUDCONVERT_API_KEY;
-    const response = await fetch("https://api.cloudconvert.com/v2/jobs", {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            tasks: {
-                "import-my-file": {
-                    "operation": "import/url",
-                    "url": fileUrl,
-                },
-                "convert-my-file": {
-                    "operation": "convert",
-                    "input": "import-my-file",
-                    "input_format": "pdf",
-                    "output_format": "png", // ou "jpg"
-                },
-                "export-my-file": {
-                    "operation": "export/s3",
-                    "input": "convert-my-file",
-                    "bucket": bucket,
-                    "region": process.env.NEXT_PUBLIC_AWS_REGION,
-                    "access_key_id": process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID,
-                    "secret_access_key": process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY,
-                },
-            },
-        }),
-    });
-
-    if (!response.ok) {
-        throw new Error(`CloudConvert error: ${await response.text()}`);
-    }
-
-    return await response.json();
-}
-
-// Handler POST para o upload do arquivo e criação do job
 export async function POST(request: NextRequest) {
     try {
+        console.log("Iniciando o upload do PDF para o S3...");
+
         const formData = await request.formData();
-        const file = formData.get('file') as File;
+        const file = formData.get("file") as File;
 
-        // 1. Fazer upload para o S3 (aqui você pode optar por fazer o upload do PDF ou apenas pegar a URL)
-        const uploadResult = await uploadFileToS3(file);
-        const fileUrl = uploadResult.url;
+        if (!file) {
+            console.error("Nenhum arquivo selecionado.");
+            throw new Error("Nenhum arquivo enviado.");
+        }
 
-        const session = await getServerSession(authOptions); // Obtém a sessão do usuário
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
+            console.error("Usuário não autenticado.");
+            throw new Error("Usuário não autenticado.");
+        }
 
-        // 2. Criar o job na CloudConvert
-        const jobData = await createCloudConvertJob(fileUrl);
+        // Converte o arquivo PDF em ArrayBuffer e Buffer
+        const pdfArrayBuffer = await file.arrayBuffer();
+        const pdfBuffer = Buffer.from(pdfArrayBuffer);
+        const uniqueFileName = `${crypto.randomUUID()}-${file.name}`;
 
-        // Aqui, você pode querer verificar o status do job e obter as URLs das imagens convertidas.
+        // Comando para salvar o PDF no S3
+        const command = new PutObjectCommand({
+            Bucket: bucket,
+            Key: uniqueFileName,
+            Body: pdfBuffer,
+            ContentType: file.type,
+        });
 
-        // 3. Salvar no banco de dados (apenas o PDF por enquanto, você pode ajustar isso mais tarde)
-        await prisma.document.create({
+        await s3.send(command);
+        const fileUrl = `https://${bucket}.s3.amazonaws.com/${uniqueFileName}`;
+        console.log("PDF enviado com sucesso para o S3:", fileUrl);
+
+        // Salva as informações no banco de dados
+        console.log("Salvando informações do documento no banco de dados...");
+        const document = await prisma.document.create({
             data: {
-                userId: session?.user.id!,
+                userId: session.user.id,
                 filePath: fileUrl,
-                fileType: 'pdf',
+                imagePath: null,
+                fileType: "pdf",
                 isSigned: false,
                 name: file.name,
             }
         });
-
-        return NextResponse.json(jobData); // Retorna os dados do job
-
-    } catch (error: any) {
+        
         return NextResponse.json({
-            status: 'error',
-            message: 'Houve um erro ao carregar o documento, tente outra vez',
-            error: error.message,
-            data: null,
+            status: "success",
+            message: "Upload do PDF concluído com sucesso!",
+            fileUrl,
+            documentId: document.id, // Adiciona o `documentId` retornado para o frontend
+        });
+        
+    } catch (error: any) {
+        console.error("Erro no upload:", error);
+        return NextResponse.json({
+            status: "error",
+            message: error.message || "Erro ao carregar o documento. Tente outra vez.",
         }, {
             status: 500,
         });
     }
-}
-
-// Função para fazer upload do arquivo para o S3
-async function uploadFileToS3(file: File): Promise<{ url: string }> {
-    const body = await file.arrayBuffer(); // Obter o conteúdo do arquivo
-    const uniqueFileName = `${crypto.randomUUID()}-${file.name}`; // Nome único para o arquivo
-
-    const command = new PutObjectCommand({
-        Bucket: bucket,
-        Key: uniqueFileName,
-        Body: body,
-    });
-
-    await s3.send(command); // Envia o arquivo para o S3
-
-    // Retorna um objeto contendo a URL do arquivo no S3
-    return { url: `https://${bucket}.s3.amazonaws.com/${uniqueFileName}` };
 }
