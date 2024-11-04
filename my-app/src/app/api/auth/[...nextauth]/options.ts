@@ -29,7 +29,8 @@ export const authOptions: NextAuthOptions = {
                 const user = await prisma.user.findUnique({
                     where: {
                         email: credentials?.email
-                    }
+                    },
+                    select: { id: true, name: true, password: true } // Seleciona apenas os campos necessários
                 })
 
 

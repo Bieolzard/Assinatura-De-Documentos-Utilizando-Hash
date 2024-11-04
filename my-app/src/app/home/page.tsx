@@ -16,7 +16,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-100">
       {/* Navbar */}
       <nav className="bg-gray-800 text-white p-4">
         <div className="container mx-auto flex justify-between items-center">
@@ -28,31 +28,33 @@ export default function Home() {
               </Link>
             </li>
             <li>
-              <Button onClick={handleLogout} className="flex items-center">
+              <a onClick={handleLogout} className="flex items-center cursor-pointer">
                 <FaSignOutAlt className="mr-2" /> Sair
-              </Button>
+              </a>
             </li>
           </ul>
         </div>
       </nav>
 
       {/* Conteúdo Principal */}
-      <main className="flex flex-col items-center p-4">
+      <main className="flex flex-col items-center justify-center p-4">
         {/* Cabeçalho de Boas-vindas */}
-        <div className="w-full max-w-md bg-blue-500 p-6 rounded-b-lg text-white text-center mt-4">
-          <h1 className="text-xl font-bold">Bem-vindo, {session?.user?.name}</h1>
+        <div className="w-full max-w-md bg-gray-800 p-6 rounded-lg text-white text-center mt-4 shadow-lg">
+          <h1 className="text-2xl font-bold mb-2">Bem-vindo, {session?.user?.name}</h1>
           <p className="text-sm">Gerenciamento de Assinaturas</p>
         </div>
 
-        {/* Ícone para Upload */}
-        <div className="flex flex-wrap justify-center mt-8 max-w-md w-full gap-4">
-          <Button
-            onClick={() => router.push("/upload")}
-            className="flex flex-col items-center justify-center p-4 bg-white shadow rounded-lg w-36 h-36"
-          >
-            <FaUpload className="text-4xl text-black" />
-            <span className="mt-2 text-[#666]">UPLOAD</span>
-          </Button>
+        {/* Card de Upload */}
+        <div className="flex flex-col items-center mt-8">
+          <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
+            <h2 className="text-lg font-semibold mb-4">Realize seu Upload</h2>
+            <Button
+              onClick={() => router.push("/upload")}
+              className="flex items-center justify-center p-4 bg-gray-800 text-white rounded-lg hover:bg-blue-600 transition duration-200"
+            >
+              <FaUpload className="mr-2" /> Upload
+            </Button>
+          </div>
         </div>
 
         {/* Versão do App */}
