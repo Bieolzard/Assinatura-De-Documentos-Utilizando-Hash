@@ -24,12 +24,10 @@ export async function POST(request: NextRequest) {
             throw new Error("Usuário não autenticado.");
         }
 
-        // Converte o arquivo PDF em ArrayBuffer e Buffer
         const pdfArrayBuffer = await file.arrayBuffer();
         const pdfBuffer = Buffer.from(pdfArrayBuffer);
         const uniqueFileName = `${crypto.randomUUID()}-${file.name}`;
 
-        // Comando para salvar o PDF no S3
         const command = new PutObjectCommand({
             Bucket: bucket,
             Key: uniqueFileName,
@@ -41,7 +39,6 @@ export async function POST(request: NextRequest) {
         const fileUrl = `https://${bucket}.s3.amazonaws.com/${uniqueFileName}`;
         console.log("PDF enviado com sucesso para o S3:", fileUrl);
 
-        // Salva as informações no banco de dados
         console.log("Salvando informações do documento no banco de dados...");
         const document = await prisma.document.create({
             data: {
@@ -58,7 +55,7 @@ export async function POST(request: NextRequest) {
             status: "success",
             message: "Upload do PDF concluído com sucesso!",
             fileUrl,
-            documentId: document.id, // Adiciona o `documentId` retornado para o frontend
+            documentId: document.id,
         });
         
     } catch (error: any) {

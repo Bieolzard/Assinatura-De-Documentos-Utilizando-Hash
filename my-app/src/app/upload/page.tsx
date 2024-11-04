@@ -4,7 +4,7 @@ import { FaUpload, FaHome } from "react-icons/fa";
 import Link from "next/link";
 import { api } from "@/lib/axios";
 import { Button } from "@/components/ui/button";
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
+import pdfjsLib, { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
 import SignatureCanvas from "react-signature-canvas";
 
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
@@ -45,7 +45,7 @@ export default function UploadPage() {
 
     const renderPDF = async (pdfUrl: string) => {
         try {
-            const loadingTask = getDocument(pdfUrl);
+            const loadingTask = pdfjsLib.getDocument(pdfUrl);
             const pdf = await loadingTask.promise;
             const page = await pdf.getPage(1);
             const viewport = page.getViewport({ scale: 1.5 });
