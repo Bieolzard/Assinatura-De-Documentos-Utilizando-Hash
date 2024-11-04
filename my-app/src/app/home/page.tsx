@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { FaUpload, FaFolderOpen, FaPen, FaUser, FaSignOutAlt, FaHome } from "react-icons/fa";
+import { FaUpload, FaSignOutAlt, FaHome } from "react-icons/fa";
 import Link from "next/link";
 
 export default function Home() {
@@ -28,11 +28,6 @@ export default function Home() {
               </Link>
             </li>
             <li>
-              <Link href="/upload" className="flex items-center">
-                <FaUpload className="mr-2" /> Upload
-              </Link>
-            </li>
-            <li>
               <Button onClick={handleLogout} className="flex items-center">
                 <FaSignOutAlt className="mr-2" /> Sair
               </Button>
@@ -49,7 +44,7 @@ export default function Home() {
           <p className="text-sm">Gerenciamento de Assinaturas</p>
         </div>
 
-        {/* Ícones e Funcionalidades */}
+        {/* Ícone para Upload */}
         <div className="flex flex-wrap justify-center mt-8 max-w-md w-full gap-4">
           <Button
             onClick={() => router.push("/upload")}
@@ -57,21 +52,6 @@ export default function Home() {
           >
             <FaUpload className="text-4xl text-black" />
             <span className="mt-2 text-[#666]">UPLOAD</span>
-          </Button>
-          <Button
-            onClick={() => router.push("/documents")}
-            className="flex flex-col items-center justify-center p-4 bg-white shadow rounded-lg w-36 h-36"
-          >
-            <FaFolderOpen className="text-4xl text-black" />
-            <span className="mt-2 text-[#666]">DOCUMENTOS</span>
-          </Button>
-          <Button className="flex flex-col items-center justify-center p-4 bg-white shadow rounded-lg w-36 h-36">
-            <FaPen className="text-4xl text-black" />
-            <span className="mt-2 text-[#666]">ASSINATURA</span>
-          </Button>
-          <Button className="flex flex-col items-center justify-center p-4 bg-white shadow rounded-lg w-36 h-36">
-            <FaUser className="text-4xl text-black" />
-            <span className="mt-2 text-[#666]">PERFIL</span>
           </Button>
         </div>
 
