@@ -1,87 +1,52 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation"; // Mantenha esta importação
-import SignatureCanvas from "react-signature-canvas";
+import { useEffect, useState } from "react";
 import { api } from "@/lib/axios";
+import { useRouter } from "next/navigation";
 
-// Defina a interface para o documento
 interface Document {
   id: string;
   filePath: string;
   name: string;
-  // Inclua outros campos que você pode precisar
 }
 
 interface SignPageProps {
   params: {
-    id: string; // O id será acessado através de params
+    id: string;
   };
 }
 
 export default function SignPage({ params }: SignPageProps) {
-  const router = useRouter();
-  const { id } = params; // Pega o id diretamente de params
   const [document, setDocument] = useState<Document | null>(null);
-  const sigCanvas = useRef<SignatureCanvas>(null);
-
-  async function fetchDocument() {
-    if (id) {
-      try {
-        const response = await api.get(`/api/documents/${id}`);
-        setDocument(response.data);
-      } catch (error) {
-        console.error("Erro ao buscar documento:", error);
-      }
-    }
-  }
+  const { id } = params;
+  const router = useRouter();
 
   useEffect(() => {
+    async function fetchDocument() {
+      if (id) {
+        try {
+          const response = await api.get(`/api/documents/${id}`);
+          setDocument(response.data);
+        } catch (error) {
+          console.error("Erro ao buscar documento:", error);
+        }
+      }
+    }
     fetchDocument();
   }, [id]);
 
-  const handleSave = async () => {
-    if (sigCanvas.current) {
-      const signatureDataUrl = sigCanvas.current.getTrimmedCanvas().toDataURL();
-      try {
-        await api.post(`/api/signatures`, {
-          documentId: id,
-          signature: signatureDataUrl,
-        });
-        alert("Assinatura salva com sucesso!");
-      } catch (error) {
-        console.error("Erro ao salvar assinatura:", error);
-      }
-    }
-  };
-
-  const handleClear = () => {
-    sigCanvas.current?.clear();
-  };
-
   return (
-    <div className="flex flex-col items-center justify-center p-4">
+    <div className="flex flex-col items-center justify-center p-4 min-h-screen bg-gray-50">
+      <h1 className="text-2xl font-bold mb-4">Visualizar Documento</h1>
       {document ? (
-        <>
-          <h1 className="text-2xl font-bold">{document.name}</h1>
-          <img src={document.filePath} alt={document.name} className="my-4 max-w-full h-auto" />
-          <SignatureCanvas
-            ref={sigCanvas}
-            canvasProps={{
-              width: 500,
-              height: 200,
-              className: "border border-gray-300 rounded",
-            }}
+        <div className="w-full max-w-md bg-white p-6 shadow rounded-lg">
+          <h2 className="text-lg font-semibold text-center mb-4">{document.name}</h2>
+          <img
+            src={document.filePath}
+            alt={document.name}
+            className="w-full h-auto object-cover border border-gray-300 rounded"
           />
-          <div className="mt-4">
-            <button onClick={handleSave} className="mr-2 bg-blue-500 text-white px-4 py-2 rounded">
-              Salvar Assinatura
-            </button>
-            <button onClick={handleClear} className="bg-red-500 text-white px-4 py-2 rounded">
-              Limpar
-            </button>
-          </div>
-        </>
+        </div>
       ) : (
         <p>Carregando documento...</p>
       )}

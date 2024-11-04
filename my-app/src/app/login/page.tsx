@@ -5,41 +5,42 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { useState, FormEvent } from "react";  // Importe FormEvent
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-
-// Definindo o esquema de validação Zod
 const schema = z.object({
   email: z.string().email({ message: "Email inválido" }),
-  senha: z.string()
-    .min(6, { message: "Senha deve ter pelo menos 6 caracteres" }),
+  senha: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres" }),
 });
 
-// Tipagem dos dados do formulário
 export type FormData = z.infer<typeof schema>;
 
 export default function LoginPage() {
   const [senhaVisivel, setSenhaVisivel] = useState(false);
-  const alternarVisibilidadeSenha = () => {
-    setSenhaVisivel(!senhaVisivel);
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const alternarVisibilidadeSenha = () => setSenhaVisivel(!senhaVisivel);
 
   const router = useRouter();
-  const { register, handleSubmit } = useForm<FormData>()
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  });
+
   const handleLogin = async (data: FormData) => {
-    const email = data.email
-    const password = data.senha
-    const response = await signIn('credentials', { callbackUrl: '/home', email, password, redirect: false })
+    setIsLoading(true);
+    const { email, senha: password } = data;
+    const response = await signIn('credentials', { callbackUrl: '/home', email, password, redirect: false });
+    setIsLoading(false);
+
     if (!response?.ok) {
-      toast.error('Credenciais inválidas')
-      return
+      toast.error('Credenciais inválidas');
+      return;
     }
-    router.push('/home')
+    router.push('/home');
   };
 
   return (
@@ -49,8 +50,16 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit(handleLogin)}>
           <div className="space-y-1 mb-2">
             <Label htmlFor="email">Email</Label>
-            <Input type="email" id="email" placeholder="Email" required {...register('email')} />
+            <Input
+              type="email"
+              id="email"
+              placeholder="Email"
+              required
+              {...register('email')}
+            />
+            {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
           </div>
+
           <div className="space-y-1 mb-4 relative">
             <Label htmlFor="senha">Senha</Label>
             <Input
@@ -66,10 +75,11 @@ export default function LoginPage() {
             >
               {senhaVisivel ? <FaEyeSlash /> : <FaEye />}
             </div>
+            {errors.senha && <p className="text-red-500 text-sm">{errors.senha.message}</p>}
           </div>
 
-          <Button type="submit" className="w-full">
-            Entrar
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Entrando..." : "Entrar"}
           </Button>
         </form>
         <p className="mt-4 text-center">
