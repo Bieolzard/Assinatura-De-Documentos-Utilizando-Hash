@@ -1,3 +1,4 @@
+import "../lib/promisePolyfill"; // ajuste o caminho conforme necessário
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
