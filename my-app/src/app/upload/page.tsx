@@ -4,10 +4,12 @@ import { FaUpload, FaHome } from "react-icons/fa";
 import Link from "next/link";
 import { api } from "@/lib/axios";
 import { Button } from "@/components/ui/button";
-import pdfjsLib, { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
 import SignatureCanvas from "react-signature-canvas";
+import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
 
-GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.3.122/pdf.worker.min.js`;
+
+
 
 export default function UploadPage() {
     const [file, setFile] = useState<File | null>(null);
@@ -45,12 +47,16 @@ export default function UploadPage() {
 
     const renderPDF = async (pdfUrl: string) => {
         try {
-            const loadingTask = pdfjsLib.getDocument(pdfUrl);
+            // Carrega o PDF usando getDocument diretamente
+            const loadingTask = getDocument(pdfUrl);
             const pdf = await loadingTask.promise;
+            
+            // Acessa a primeira página
             const page = await pdf.getPage(1);
             const viewport = page.getViewport({ scale: 1.5 });
             setPdfScale(viewport.scale);
-            
+    
+            // Configura o canvas para renderizar a página
             const canvas = document.createElement("canvas");
             const context = canvas.getContext("2d");
     
@@ -60,12 +66,14 @@ export default function UploadPage() {
             canvas.height = viewport.height;
             await page.render({ canvasContext: context, viewport: viewport }).promise;
     
+            // Salva a página renderizada como imagem
             setPages([canvas.toDataURL("image/png")]);
         } catch (error) {
             console.error("Erro ao renderizar o PDF:", error);
             setUploadStatus("Erro ao renderizar o documento.");
         }
     };
+    
     
 
     const captureSignature = () => {
