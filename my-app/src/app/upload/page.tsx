@@ -4,11 +4,10 @@ import { FaUpload, FaHome } from "react-icons/fa";
 import Link from "next/link";
 import { api } from "@/lib/axios";
 import { Button } from "@/components/ui/button";
-import * as pdfjsLib from "pdfjs-dist";
+import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
 import SignatureCanvas from "react-signature-canvas";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
 
 export default function UploadPage() {
     const [file, setFile] = useState<File | null>(null);
@@ -46,26 +45,28 @@ export default function UploadPage() {
 
     const renderPDF = async (pdfUrl: string) => {
         try {
-            const loadingTask = pdfjsLib.getDocument(pdfUrl);
+            const loadingTask = getDocument(pdfUrl);
             const pdf = await loadingTask.promise;
             const page = await pdf.getPage(1);
             const viewport = page.getViewport({ scale: 1.5 });
-            setPdfScale(viewport.scale); // Guarda a escala usada para ajustar as coordenadas
+            setPdfScale(viewport.scale);
+            
             const canvas = document.createElement("canvas");
             const context = canvas.getContext("2d");
-
+    
             if (!context) throw new Error("Erro no contexto do canvas.");
-
+    
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             await page.render({ canvasContext: context, viewport: viewport }).promise;
-
+    
             setPages([canvas.toDataURL("image/png")]);
         } catch (error) {
             console.error("Erro ao renderizar o PDF:", error);
             setUploadStatus("Erro ao renderizar o documento.");
         }
     };
+    
 
     const captureSignature = () => {
         if (sigCanvasRef.current) {
