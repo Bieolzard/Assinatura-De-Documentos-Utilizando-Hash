@@ -4,10 +4,11 @@ import { FaUpload, FaHome } from "react-icons/fa";
 import Link from "next/link";
 import { api } from "@/lib/axios";
 import { Button } from "@/components/ui/button";
-import * as pdfjsLib from "pdfjs-dist/webpack";
+import pdfjsLib from "pdfjs-dist";
 import SignatureCanvas from "react-signature-canvas";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
 
 export default function UploadPage() {
     const [file, setFile] = useState<File | null>(null);
