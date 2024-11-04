@@ -1,13 +1,14 @@
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { NextAuthOptions } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/options";
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
     try {
-        const session = await getServerSession(authOptions)
+        // Obtém a sessão do usuário
+        const session = await getServerSession(authOptions);
         if (!session) {
+            // Retorna erro se o usuário não estiver autenticado
             return NextResponse.json(
                 {
                     status: "error",
@@ -20,10 +21,12 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
             );
         }
 
+        // Busca o documento pelo ID
         const document = await prisma.document.findUnique({
             where: { id: params.id },
         });
 
+        // Verifica se o documento existe
         if (!document) {
             return NextResponse.json(
                 {
@@ -37,12 +40,18 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
             );
         }
 
+        // Retorna o documento encontrado
         return NextResponse.json({
             status: "ok",
             message: "Documento carregado com sucesso!",
-            data: document,
+            data: {
+                ...document, // Aqui deve conter a signatureUrl
+                signatureUrl: document.signatureUrl, // Certifique-se de que essa propriedade existe
+            },
         });
     } catch (error: any) {
+        // Log de erro para depuração
+        console.error("Erro ao carregar documento:", error);
         return NextResponse.json(
             {
                 status: "error",
