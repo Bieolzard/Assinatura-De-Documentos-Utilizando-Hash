@@ -1,0 +1,3 @@
+[submodule "my-app/src/tcc-back"]
+	path = my-app/src/tcc-back
+	url = https://github.com/HugoLima-590/tcc-back.git

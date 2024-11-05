@@ -1,15 +1,15 @@
 'use client';
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { FaUpload, FaHome } from "react-icons/fa";
 import Link from "next/link";
 import { api } from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import SignatureCanvas from "react-signature-canvas";
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
+import Web3 from 'web3';
+import { PDFDocument } from 'pdf-lib';
 
-GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.3.122/pdf.worker.min.js`;
-
-
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 export default function UploadPage() {
     const [file, setFile] = useState<File | null>(null);
@@ -18,10 +18,11 @@ export default function UploadPage() {
     const [pages, setPages] = useState<string[]>([]);
     const [documentId, setDocumentId] = useState<string | null>(null);
     const [signatureImage, setSignatureImage] = useState<string | null>(null);
-    const [signaturePosition, setSignaturePosition] = useState<{ x: number, y: number } | null>(null);
+    const [signaturePosition, setSignaturePosition] = useState<{ x: number; y: number } | null>(null);
     const sigCanvasRef = useRef<SignatureCanvas | null>(null);
     const signatureRef = useRef<HTMLDivElement | null>(null);
     const [pdfScale, setPdfScale] = useState<number>(1);
+    const [signedFile, setSignedFile] = useState<File | null>(null); // Adicione um estado para o arquivo assinado
 
     async function handleFileUpload(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -38,6 +39,13 @@ export default function UploadPage() {
                 setDocumentId(response.data.documentId);
                 setUploadStatus("Upload concluído com sucesso!");
                 renderPDF(response.data.fileUrl);
+
+                const arrayBuffer = await file.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                const documentHash = Web3.utils.sha3(uint8Array);
+
+                console.log("Hash gerado para o documento:", documentHash);
+                await api.post('/api/add-document', { documentHash });
             }
         } catch (error) {
             console.error("Erro ao carregar o documento:", error);
@@ -45,42 +53,94 @@ export default function UploadPage() {
         }
     }
 
+    async function handleSignedDocumentUpload() {
+        if (!signedFile) return;
+
+        const formData = new FormData();
+        formData.append("file", signedFile);
+        setUploadStatus("Enviando documento assinado...");
+
+        try {
+            const response = await api.post("/api/upload", formData);
+            if (response.data.fileUrl && response.data.documentId) {
+                setPdfUrl(response.data.fileUrl);
+                setDocumentId(response.data.documentId);
+                setUploadStatus("Upload do documento assinado concluído!");
+
+                const arrayBuffer = await signedFile.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                const signedDocumentHash = Web3.utils.sha3(uint8Array); // Use o conteúdo real do arquivo
+
+                console.log("Hash gerado para o documento assinado:", signedDocumentHash);
+                await api.post('/api/add-document', { documentHash: signedDocumentHash });
+            }
+        } catch (error) {
+            console.error("Erro ao carregar o documento assinado:", error);
+            setUploadStatus("Erro ao carregar o documento assinado.");
+        }
+    }
+
     const renderPDF = async (pdfUrl: string) => {
         try {
-            // Carrega o PDF usando getDocument diretamente
             const loadingTask = getDocument(pdfUrl);
             const pdf = await loadingTask.promise;
-            
-            // Acessa a primeira página
+
             const page = await pdf.getPage(1);
             const viewport = page.getViewport({ scale: 1.5 });
             setPdfScale(viewport.scale);
-    
-            // Configura o canvas para renderizar a página
+
             const canvas = document.createElement("canvas");
             const context = canvas.getContext("2d");
-    
+
             if (!context) throw new Error("Erro no contexto do canvas.");
-    
+
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             await page.render({ canvasContext: context, viewport: viewport }).promise;
-    
-            // Salva a página renderizada como imagem
+
             setPages([canvas.toDataURL("image/png")]);
         } catch (error) {
             console.error("Erro ao renderizar o PDF:", error);
             setUploadStatus("Erro ao renderizar o documento.");
         }
     };
-    
-    
 
-    const captureSignature = () => {
+    const captureSignature = async () => {
         if (sigCanvasRef.current) {
+            // Captura a imagem da assinatura
             const dataURL = sigCanvasRef.current.getTrimmedCanvas().toDataURL("image/png");
             setSignatureImage(dataURL);
+
+            // Gera um novo PDF com a assinatura
+            const newPdfFile = await generatePdfWithSignature(file, dataURL);
+            if (newPdfFile) {
+                const fileName = `${file?.name.split('.').slice(0, -1).join('.')}-signed.pdf`; // Gera um nome para o PDF assinado
+                const signedFileObj = new File([newPdfFile], fileName, { type: 'application/pdf' });
+                setSignedFile(signedFileObj); // Atualiza o estado do arquivo assinado
+            }
         }
+    };
+
+    const generatePdfWithSignature = async (originalFile: File | null, signatureImageDataURL: string) => {
+        if (!originalFile) return null; // Verifica se o arquivo original está disponível
+
+        const originalPdfBytes = await originalFile.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(originalPdfBytes);
+        const page = pdfDoc.getPage(0);
+
+        const pngImage = await pdfDoc.embedPng(signatureImageDataURL);
+        const signatureWidth = 100; // Ajuste o tamanho conforme necessário
+        const signatureHeight = (pngImage.height / pngImage.width) * signatureWidth; // Mantém a proporção
+
+        page.drawImage(pngImage, {
+            x: 50,
+            y: 50,
+            width: signatureWidth,
+            height: signatureHeight,
+        });
+
+        const pdfBytes = await pdfDoc.save();
+        return new Blob([pdfBytes], { type: 'application/pdf' }); // Retorna o Blob do PDF assinado
     };
 
     const clearSignature = () => {
@@ -91,7 +151,7 @@ export default function UploadPage() {
 
     const handleDrag = (event: React.MouseEvent<HTMLDivElement>) => {
         event.preventDefault();
-        const element = signatureRef.current!;
+        const element = signatureRef.current!; 
         if (!element) return;
 
         const offsetX = event.clientX - (element.getBoundingClientRect().left || 0);
@@ -114,10 +174,8 @@ export default function UploadPage() {
         document.addEventListener("mouseup", onMouseUp);
     };
 
-    // Ajusta a posição da assinatura ao salvar
     const saveSignatureToDocument = async () => {
         if (documentId && signatureImage && signaturePosition) {
-            // Normaliza a posição para o PDF usando a escala
             const adjustedPosition = {
                 x: signaturePosition.x / pdfScale,
                 y: signaturePosition.y / pdfScale,
@@ -206,6 +264,13 @@ export default function UploadPage() {
                         <Button onClick={saveSignatureToDocument} className="mt-2">Salvar no Documento</Button>
                     </div>
                 )}
+
+                {/* Botão para enviar documento assinado */}
+                <form onSubmit={(e) => { e.preventDefault(); if (signedFile) handleSignedDocumentUpload(); }}>
+                    <Button className="mt-5" type="submit" disabled={!signedFile}>
+                        Enviar Documento Assinado
+                    </Button>
+                </form>
             </main>
         </div>
     );
