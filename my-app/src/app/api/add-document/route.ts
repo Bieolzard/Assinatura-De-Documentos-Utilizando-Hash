@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/options";
 import { documentExists, saveDocument } from "@/tcc-back/server/db";
 import path from "path";
-import { exec } from "child_process";
+import { spawn } from "child_process";
 
 export async function POST(request: NextRequest) {
     try {
@@ -25,9 +25,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Verifica se o documento já existe
         const exists = await documentExists(documentHash);
-        console.log("Documento já existe:", exists); // Log para verificação
+        console.log("Documento já existe:", exists);
         if (exists) {
             return NextResponse.json(
                 { message: "Este documento já foi enviado ao blockchain." },
@@ -35,26 +34,39 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Salva o documento no banco de dados
-        await saveDocument(documentHash);
-        console.log("Documento salvo no banco de dados com hash:", documentHash);
+        // await saveDocument(documentHash);
+        // console.log("Documento salvo no banco de dados com hash:", documentHash);
 
-        // Executar o script interact.js para adicionar o documento ao blockchain
         const interactPath = path.join(process.cwd(), 'src', 'tcc-back', 'interact.js');
-        console.log("Caminho do interact.js:", interactPath);
+        const nodePath = `"C:\\Program Files\\nodejs\\node.exe"`;
+        const args = [interactPath, documentHash];
+
+        console.log("Executando script interact.js com o comando:", `${nodePath} ${args.join(" ")}`);
 
         await new Promise((resolve, reject) => {
-            exec(`node ${interactPath} ${documentHash}`, (error, stdout, stderr) => {
-                if (error) {
-                    console.error(`Erro ao executar interact.js: ${error.message}`);
-                    return reject(new Response('Erro ao executar interact.js', { status: 500 }));
+            const child = spawn(nodePath, args, { shell: true });
+
+            child.stdout.on("data", (data) => {
+                console.log(`Saída do script interact.js: ${data}`);
+            });
+
+            child.stderr.on("data", (data) => {
+                console.error(`Erro no script interact.js: ${data}`);
+            });
+
+            child.on("error", (error) => {
+                console.error(`Erro ao iniciar o script interact.js: ${error.message}`);
+                reject(new Response(`Erro ao iniciar interact.js: ${error.message}`, { status: 500 }));
+            });
+
+            child.on("close", (code) => {
+                if (code === 0) {
+                    console.log("Script interact.js finalizado com sucesso.");
+                    resolve(null);
+                } else {
+                    console.error(`Script interact.js finalizado com erro. Código de saída: ${code}`);
+                    reject(new Response(`Erro ao executar interact.js. Código de saída: ${code}`, { status: 500 }));
                 }
-                if (stderr) {
-                    console.error(`Erro no script: ${stderr}`);
-                    return reject(new Response('Erro no script', { status: 500 }));
-                }
-                console.log(`Script output: ${stdout}`);
-                resolve(stdout);
             });
         });
 

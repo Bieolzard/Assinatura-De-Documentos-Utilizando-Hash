@@ -208,7 +208,7 @@ export default function UploadPage() {
         <div className="flex flex-col min-h-screen bg-gray-50">
             <nav className="bg-gray-800 text-white p-4">
                 <div className="container mx-auto flex justify-between items-center">
-                    <h1 className="text-xl font-bold">Meu Sistema</h1>
+                    <h1 className="text-xl font-bold">Blockchain Signature</h1>
                     <ul className="flex space-x-4">
                         <li>
                             <Link href="/home" className="flex items-center">
