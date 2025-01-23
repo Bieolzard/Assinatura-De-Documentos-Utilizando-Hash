@@ -27,7 +27,7 @@ Este projeto foi desenvolvido como Trabalho de Conclusão de Curso (TCC) e consi
 ### Clone o repositório:
 
 ```bash
-git clone https://github.com/Bieolzard/tcc-front.git
+git clone https://github.com/Bieolzard/Assinatura-De-Documentos-Utilizando-Hash.git
 ```
 ### Simulador
 Baixe o simulador de blockchain Ganache:
