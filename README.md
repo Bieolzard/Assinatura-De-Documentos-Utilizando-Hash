@@ -6,8 +6,9 @@ Este projeto foi desenvolvido como Trabalho de Conclusão de Curso (TCC) e consi
 - **ShadCN UI** para componentes de interface do usuário;
 - **Prisma ORM/MongoDB** para a manipulação do banco de dados;
 - **NEXT API** para comunicação entre o front-end e o back-end;
-- **Amazon S3** para armazenamento de arquivos.
-
+- **Amazon S3** para armazenamento de arquivos;
+- **JavaScript** para o desenvolvimento de interação do sistema;
+- **Solidity** para a criação e deploy de contratos inteligentes.
 ---
 
 ## TCC
