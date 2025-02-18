@@ -10,6 +10,9 @@ Este projeto foi desenvolvido como Trabalho de Conclusão de Curso (TCC) e consi
 
 ---
 
+## TCC
+Link do TCC: [VALIDAÇÃO DE ASSINATURAS DIGITAIS UTILIZANDO BLOCKCHAIN E HASH](https://courseware.fho.edu.br/repositorio-publico/eyJpdiI6ImZPTStxaTFrRUsyZnBvTERwaXBJd1E9PSIsInZhbHVlIjoicjd0Z2pIZGUrT2diVEo4WENJMW9wUT09IiwibWFjIjoiOTRjYmJhNTBiN2Q3YmY0YmFhMDAxY2YyZTJmOWVkN2M4MjQyZjA1YTRiY2RmMDg0NTI0NmJmYWMxMTc2NzM1MiIsInRhZyI6IiJ9?search=Blockchain)
+
 ## Funcionalidades
 
 - Upload de documentos em formato PDF;
